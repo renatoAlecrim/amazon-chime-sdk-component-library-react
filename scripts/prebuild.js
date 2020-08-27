@@ -28,12 +28,11 @@ if (!process.env.GITHUB_ACTIONS) {
     .filter(commit => commit !== '');
 } else {
   // In the case of a Github action, the github worker will merge all commits into one commit, so we only need to grab the top commit
-  commits = spawnOrFail('git', ['rev-parse', `HEAD`])
-    .toString()
-    .trim()
-    .split(`\n`)
-    .filter(commit => commit !== '');
-}
+  commits = spawnOrFail('git', ['diff', `--name-only`, `HEAD..`, `${base}`]);
+  console.log(commits);
+} 
+spawnOrFail('git', ['fetch', `${base}`])
+const base_sha = spawnOrFail('git', ['rev-parse', `${base}`])
 
 let commit_files = [];
 commit_files = spawnOrFail('git', [
@@ -41,7 +40,8 @@ commit_files = spawnOrFail('git', [
   '--no-commit-id',
   '--name-only',
   '-r',
-  `${commits[0]}`,
+  `${commits[0]}..`,
+  `${base_sha}`,
 ])
   .toString()
   .trim()
@@ -58,15 +58,13 @@ if (uncommitted_files.length !== 0) {
   return process.exit(1);
 }
 
-if (
-  commit_files.includes('.github/workflows') &&
-  !process.env.GITHUB_ACTIONS
-) {
+if (!!commit_files.find(file => file.includes('github/workflows')) && !process.env.GITHUB_ACTIONS) {
   logger.warn(
     "If your github action workflow uses a 'push' or 'pull_request' trigger, have you verified that the github workflow change is safe to execute when the PR is created? Or type yes if this does not apply to you."
   );
   shouldContinuePrompt();
 }
+logger.log(commit_files);
 
 if (commit_files.includes('CHANGELOG.md')) {
   logger.log(`OK: branch contains CHANGELOG.md`);
@@ -82,7 +80,7 @@ When bot submits PR two git context parameters are set.
   labels.filter(lbl => lbl.name === 'dependencies').length === 1
 ) {
   logger.log('Skipping CHANGELOG.md verification.');
-} else if (!commit_files.includes('./src')) {
+} else if (commit_files.every((file) => !file.startsWith('.src/'))) {
   // Only require a changelog change for changes to the component library
   logger.log('Skipping CHANGELOG.md verification.');
 } else {
