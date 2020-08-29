@@ -35,10 +35,14 @@ const staticStyles = `
 interface Props extends BaseProps {
   /** A component to render when there are no remote videos present */
   noRemoteVideoView?: React.ReactNode;
+  
+  /** A nameplate to show on local video tile */
+  localNamePlate?: string;
 }
 
 export const VideoTileGrid: React.FC<Props> = ({
   noRemoteVideoView,
+  localNamePlate,
   ...rest
 }) => {
   const { tileId: featureTileId } = useFeaturedTileState();
@@ -55,7 +59,7 @@ export const VideoTileGrid: React.FC<Props> = ({
       <ContentShare css="grid-area: ft;" />
       <FeaturedRemoteVideos />
       <LocalVideo
-        nameplate="Me"
+        nameplate={localNamePlate ? localNamePlate : "Me"}
         css={gridSize > 1 ? fluidStyles : staticStyles}
       />
       {remoteSize === 0 && noRemoteVideoView}
